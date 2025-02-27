@@ -34,11 +34,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.martinm27.testsurvey.ui.survey.SurveyViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
-
-val pagesSize = 20
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,80 +45,86 @@ fun SurveyScreen(
     navigateBack: () -> Unit,
     viewModel: SurveyViewModel = koinViewModel()
 ) {
-    val pagerState = rememberPagerState(pageCount = { pagesSize })
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    val pagerState = rememberPagerState(pageCount = { uiState.questions.size })
     val coroutineScope = rememberCoroutineScope()
 
     BackHandler {
-        // TODO: Reset the progress
+        viewModel.reset()
         navigateBack()
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                containerColor = Color.LightGray,
-            ),
-            title = { Text("Question ${pagerState.currentPage + 1}/${pagesSize}") },
-            navigationIcon = {
-                IconButton(
-                    onClick = {
-                        // TODO: Reset the progress
-                        navigateBack()
+    LoadingOverlay(
+        isLoading = uiState.isLoading
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopAppBar(
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = Color.LightGray,
+                ),
+                title = { Text("Question ${pagerState.currentPage + 1}/${uiState.questions.size}") },
+                navigationIcon = {
+                    IconButton(
+                        onClick = {
+                            viewModel.reset()
+                            navigateBack()
+                        }
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
-            },
-            actions = {
-                TextButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            if (pagerState.currentPage > 0) pagerState.animateScrollToPage(
-                                pagerState.currentPage - 1
-                            )
-                        }
-                    },
-                    enabled = pagerState.currentPage > 0
-                ) {
-                    Text("Previous")
-                }
-                TextButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            if (pagerState.currentPage < pagesSize - 1) pagerState.animateScrollToPage(
-                                pagerState.currentPage + 1
-                            )
-                        }
-                    },
-                    enabled = pagerState.currentPage < pagesSize - 1
-                ) {
-                    Text("Next")
-                }
-            }
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Questions submitted: 0", modifier = Modifier.padding(16.dp))
-        }
-
-        HorizontalPager(
-            state = pagerState,
-            modifier = Modifier.background(Color.LightGray)
-        ) { page ->
-            val question = "What is your favourite food?"
-            SurveyQuestionScreen(
-                question = question,
-                onSubmit = {
-                    // TODO: Handle submit button action
                 },
-                isSubmitted = false,
+                actions = {
+                    TextButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                if (pagerState.currentPage > 0) pagerState.animateScrollToPage(
+                                    pagerState.currentPage - 1
+                                )
+                            }
+                        },
+                        enabled = pagerState.currentPage > 0
+                    ) {
+                        Text("Previous")
+                    }
+                    TextButton(
+                        onClick = {
+                            coroutineScope.launch {
+                                if (pagerState.currentPage < uiState.questions.size - 1) pagerState.animateScrollToPage(
+                                    pagerState.currentPage + 1
+                                )
+                            }
+                        },
+                        enabled = pagerState.currentPage < uiState.questions.size - 1
+                    ) {
+                        Text("Next")
+                    }
+                }
             )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Questions submitted: 0", modifier = Modifier.padding(16.dp))
+            }
+
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.background(Color.LightGray)
+            ) { page ->
+                val question = "What is your favourite food?"
+                SurveyQuestionScreen(
+                    question = question,
+                    onSubmit = {
+                        // TODO: Handle submit button action
+                    },
+                    isSubmitted = false,
+                )
+            }
         }
     }
 }

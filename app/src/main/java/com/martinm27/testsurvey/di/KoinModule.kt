@@ -3,6 +3,7 @@ package com.martinm27.testsurvey.di
 import com.martinm27.testsurvey.BuildConfig
 import com.martinm27.testsurvey.api.TestSurveyApi
 import com.martinm27.testsurvey.api.converter.NullOnEmptyConverterFactory
+import com.martinm27.testsurvey.data.SurveyRepository
 import com.martinm27.testsurvey.ui.survey.SurveyViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -29,6 +30,10 @@ val apiModule = module {
 
     single(named(MAIN_SCHEDULER)) {
         AndroidSchedulers.mainThread()
+    }
+
+    single {
+        SurveyRepository(get())
     }
 }
 
