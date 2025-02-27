@@ -8,6 +8,10 @@ android {
     namespace = "com.martinm27.testsurvey"
     compileSdk = 35
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.martinm27.testsurvey"
         minSdk = 29
@@ -16,6 +20,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "BASE_URL", "\"${project.properties["API_BASE_URL"]}\"")
     }
 
     buildTypes {
@@ -50,10 +56,27 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
     testImplementation(libs.junit)
+    testImplementation(libs.mockk)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Retrofit
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.gson)
+    implementation(libs.okhttp.logginginterceptor)
+    implementation(libs.okhttp)
+    implementation(libs.gson)
+
+    // Koin
+    implementation(libs.koin)
+    implementation(libs.koin.androidx.compose)
+
+    // RxJava
+    implementation(libs.kotlin.composable.architecture)
+    implementation(libs.rxjava)
+
 }
