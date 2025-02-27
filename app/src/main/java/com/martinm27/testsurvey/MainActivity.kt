@@ -14,6 +14,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.martinm27.testsurvey.ui.landing.LandingScreen
+import com.martinm27.testsurvey.ui.survey.compose.SurveyScreen
 import com.martinm27.testsurvey.ui.theme.TestSurveyTheme
 
 class MainActivity : ComponentActivity() {
@@ -39,7 +40,15 @@ fun TestSurveyApp(innerPadding: PaddingValues) {
             LandingScreen(
                 modifier = Modifier.padding(innerPadding),
                 navigateToQuestions = {
-                    // TODO: Add another screen
+                    navController.navigate("survey")
+                }
+            )
+        }
+
+        composable("survey") {
+            SurveyScreen(
+                navigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
