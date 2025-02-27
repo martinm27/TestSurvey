@@ -77,7 +77,9 @@ dependencies {
 
     // RxJava
     implementation(libs.kotlin.composable.architecture)
+    implementation(libs.adapter.rxjava2)
     implementation(libs.rxjava)
+    implementation(libs.rxandroid)
 
     // Navigation
     implementation(libs.androidx.navigation.compose)
