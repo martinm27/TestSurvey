@@ -1,9 +1,14 @@
 package com.martinm27.testsurvey.di
 
 import com.martinm27.testsurvey.BuildConfig
+import com.martinm27.testsurvey.api.SurveyClient
+import com.martinm27.testsurvey.api.SurveyClientLive
 import com.martinm27.testsurvey.api.TestSurveyApi
 import com.martinm27.testsurvey.api.converter.NullOnEmptyConverterFactory
+import com.martinm27.testsurvey.base.BaseSchedulerProvider
+import com.martinm27.testsurvey.base.SchedulerProvider
 import com.martinm27.testsurvey.ui.survey.SurveyViewModel
+import com.martinm27.testsurvey.ui.survey.komposable.environment.SurveyEnvironment
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
 import okhttp3.OkHttpClient
@@ -19,8 +24,8 @@ const val IO_SCHEDULER = "IO"
 const val MAIN_SCHEDULER = "MAIN_THREAD"
 
 val apiModule = module {
-    single { provideTestSurveyApi(get()) }
-    single { provideTestSurveyRetrofit(get()) }
+    single { provideTestSurveyApi(retrofit = get()) }
+    single { provideTestSurveyRetrofit(okHttpClient = get()) }
     single { provideOkHttpClient() }
 
     single(named(IO_SCHEDULER)) {
@@ -29,6 +34,18 @@ val apiModule = module {
 
     single(named(MAIN_SCHEDULER)) {
         AndroidSchedulers.mainThread()
+    }
+
+    single<SurveyClient> {
+        SurveyClientLive(testSurveyApi = get())
+    }
+
+    single<SchedulerProvider> {
+        BaseSchedulerProvider()
+    }
+
+    single {
+        SurveyEnvironment(surveyClient = get(), schedulerProvider = get())
     }
 }
 

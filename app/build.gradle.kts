@@ -80,6 +80,7 @@ dependencies {
     implementation(libs.adapter.rxjava2)
     implementation(libs.rxjava)
     implementation(libs.rxandroid)
+    implementation(libs.androidx.runtime.rxjava3)
 
     // Navigation
     implementation(libs.androidx.navigation.compose)
