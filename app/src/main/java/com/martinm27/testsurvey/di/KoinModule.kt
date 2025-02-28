@@ -7,9 +7,10 @@ import com.martinm27.testsurvey.data.SurveyRepository
 import com.martinm27.testsurvey.ui.survey.SurveyViewModel
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
+import kotlinx.coroutines.Dispatchers
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import org.koin.core.module.dsl.viewModelOf
+import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import retrofit2.Retrofit
@@ -18,6 +19,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 const val IO_SCHEDULER = "IO"
 const val MAIN_SCHEDULER = "MAIN_THREAD"
+
+const val IO_DISPATCHER = "IO_DISPATCHER"
 
 val apiModule = module {
     single { provideTestSurveyApi(get()) }
@@ -32,13 +35,22 @@ val apiModule = module {
         AndroidSchedulers.mainThread()
     }
 
+    single(named(IO_DISPATCHER)) {
+        Dispatchers.IO
+    }
+
     single {
         SurveyRepository(get())
     }
 }
 
 val featuresModule = module {
-    viewModelOf(::SurveyViewModel)
+    viewModel {
+        SurveyViewModel(
+            surveyRepository = get(),
+            ioDispatcher = get(named(IO_DISPATCHER))
+        )
+    }
 }
 
 private fun provideTestSurveyApi(retrofit: Retrofit) = retrofit.create(TestSurveyApi::class.java)

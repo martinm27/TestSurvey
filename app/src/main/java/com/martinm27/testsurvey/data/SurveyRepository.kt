@@ -5,8 +5,9 @@ import com.martinm27.testsurvey.api.TestSurveyApi
 import com.martinm27.testsurvey.api.model.Answer
 import com.martinm27.testsurvey.domain.Question
 import kotlinx.coroutines.flow.MutableStateFlow
-import okhttp3.ResponseBody
-import retrofit2.Call
+
+private const val OK_STATUS_CODE = 200
+private const val ERROR_STATUS_CODE = 400
 
 class SurveyRepository(
     private val surveyApi: TestSurveyApi
@@ -46,8 +47,43 @@ class SurveyRepository(
         }
     }
 
-    suspend fun postAnswer(answer: Answer): Call<ResponseBody> {
-        return surveyApi.postAnswer(answer)
+    suspend fun postAnswer(answer: Answer): Result<Unit> {
+        return try {
+            val response = surveyApi.postAnswer(answer)
+
+            if (response.code() == OK_STATUS_CODE) {
+                updateQuestionsList(answer)
+                Result.success(Unit)
+            } else {
+                Result.failure(IllegalStateException("Wrong HTTP code returned: ${response.code()}"))
+            }
+        } catch (exception: Exception) {
+            Log.e("SurveyRepository", exception.message ?: "")
+            Result.failure(exception)
+        }
+    }
+
+    private suspend fun updateQuestionsList(answer: Answer) {
+        val currentList = _questionsFlow.value.getOrNull()?.toMutableList()
+
+        currentList?.let {
+            val questionAnswered = it.find { question: Question -> question.id == answer.id }
+
+            val updatedQuestion = questionAnswered?.copy(
+                isAnswered = true,
+                answer = answer
+            )
+
+            it.replaceAll { question ->
+                if (question.id == updatedQuestion?.id) {
+                    updatedQuestion
+                } else {
+                    question
+                }
+            }
+        } ?: return
+
+        _questionsFlow.emit(Result.success(currentList.toList()))
     }
 
     suspend fun reset() {
