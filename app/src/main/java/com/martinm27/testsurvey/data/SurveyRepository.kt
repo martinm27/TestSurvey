@@ -2,19 +2,15 @@ package com.martinm27.testsurvey.data
 
 import android.util.Log
 import com.martinm27.testsurvey.api.TestSurveyApi
-import com.martinm27.testsurvey.api.model.Answer
+import com.martinm27.testsurvey.domain.Answer
 import com.martinm27.testsurvey.domain.Question
 import kotlinx.coroutines.flow.MutableStateFlow
 
 private const val OK_STATUS_CODE = 200
-private const val ERROR_STATUS_CODE = 400
 
-class SurveyRepository(
-    private val surveyApi: TestSurveyApi
-) {
+class SurveyRepository(private val surveyApi: TestSurveyApi) {
 
-    private val _questionsFlow =
-        MutableStateFlow<Result<List<Question>>>(Result.success(emptyList()))
+    private val _questionsFlow = MutableStateFlow<Result<List<Question>>>(Result.success(emptyList()))
     val questionsFlow = _questionsFlow
 
     /**
@@ -47,15 +43,20 @@ class SurveyRepository(
         }
     }
 
+    /**
+     * Submits the answer to the API and returns [Result.success] if successful.
+     *
+     * If there are any errors, exception is thrown and [Result.failure] will be returned.
+     */
     suspend fun postAnswer(answer: Answer): Result<Unit> {
         return try {
-            val response = surveyApi.postAnswer(answer)
+            val response = surveyApi.postAnswer(answer.toApiAnswer())
 
             if (response.code() == OK_STATUS_CODE) {
                 updateQuestionsList(answer)
                 Result.success(Unit)
             } else {
-                Result.failure(IllegalStateException("Wrong HTTP code returned: ${response.code()}"))
+                Result.failure(IllegalStateException("Unexpected HTTP code returned: ${response.code()}"))
             }
         } catch (exception: Exception) {
             Log.e("SurveyRepository", exception.message ?: "")
@@ -63,6 +64,13 @@ class SurveyRepository(
         }
     }
 
+    /**
+     * Updates the current questions list with an answered questions.
+     * - First, the list is converted to mutable list.
+     * - Question is found via question ID (answer's ID is also a question ID)
+     * - Question object is updated and replaced
+     * - New list is emitted to the Flow.
+     */
     private suspend fun updateQuestionsList(answer: Answer) {
         val currentList = _questionsFlow.value.getOrNull()?.toMutableList()
 
@@ -86,6 +94,9 @@ class SurveyRepository(
         _questionsFlow.emit(Result.success(currentList.toList()))
     }
 
+    /**
+     * Resets the whole survey progress.
+     */
     suspend fun reset() {
         _questionsFlow.emit(Result.success(emptyList()))
     }

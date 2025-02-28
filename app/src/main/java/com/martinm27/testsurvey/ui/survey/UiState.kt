@@ -1,6 +1,6 @@
 package com.martinm27.testsurvey.ui.survey
 
-import com.martinm27.testsurvey.api.model.Answer
+import com.martinm27.testsurvey.domain.Answer
 import com.martinm27.testsurvey.domain.Question
 
 data class UiState(

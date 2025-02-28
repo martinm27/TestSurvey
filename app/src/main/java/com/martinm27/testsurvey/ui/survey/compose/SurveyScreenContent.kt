@@ -40,7 +40,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.martinm27.testsurvey.domain.Question
 import com.martinm27.testsurvey.ui.survey.SubmissionState
-import com.martinm27.testsurvey.ui.survey.SurveyViewModel
+import com.martinm27.testsurvey.ui.survey.UiEvent
 import com.martinm27.testsurvey.ui.survey.UiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -49,7 +49,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun SurveyScreenContent(
     uiState: UiState,
-    onUiEvent: (SurveyViewModel.UiEvent) -> Unit
+    onUiEvent: (UiEvent) -> Unit
 ) {
     val pagerState = rememberPagerState(
         initialPage = uiState.selectedQuestionPosition,
@@ -57,7 +57,7 @@ fun SurveyScreenContent(
     )
 
     BackHandler {
-        onUiEvent(SurveyViewModel.UiEvent.Back)
+        onUiEvent(UiEvent.Back)
     }
 
     LaunchedEffect(uiState.selectedQuestionPosition) {
@@ -76,7 +76,7 @@ fun SurveyScreenContent(
                 navigationIcon = {
                     IconButton(
                         onClick = {
-                            onUiEvent(SurveyViewModel.UiEvent.Back)
+                            onUiEvent(UiEvent.Back)
                         }
                     ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -85,7 +85,7 @@ fun SurveyScreenContent(
                 actions = {
                     TextButton(
                         onClick = {
-                            onUiEvent(SurveyViewModel.UiEvent.Previous)
+                            onUiEvent(UiEvent.Previous)
                         },
                         enabled = pagerState.currentPage > 0
                     ) {
@@ -93,7 +93,7 @@ fun SurveyScreenContent(
                     }
                     TextButton(
                         onClick = {
-                            onUiEvent(SurveyViewModel.UiEvent.Next)
+                            onUiEvent(UiEvent.Next)
                         },
                         enabled = pagerState.currentPage < uiState.questions.size - 1
                     ) {
@@ -134,7 +134,7 @@ fun SurveyScreenContent(
 @Composable
 fun SurveyQuestionScreen(
     question: Question,
-    onUiEvent: (SurveyViewModel.UiEvent) -> Unit,
+    onUiEvent: (UiEvent) -> Unit,
     submissionState: SubmissionState?
 ) {
     var answerInput by rememberSaveable { mutableStateOf("") }
@@ -171,7 +171,7 @@ fun SurveyQuestionScreen(
                     if (submissionState.answerForRetry != null) {
                         Button(
                             onClick = {
-                                onUiEvent(SurveyViewModel.UiEvent.RetrySubmit(submissionState.answerForRetry))
+                                onUiEvent(UiEvent.RetrySubmit(submissionState.answerForRetry))
                             }
                         ) {
                             Text("Retry")
@@ -184,7 +184,7 @@ fun SurveyQuestionScreen(
         LaunchedEffect(Unit) {
             coroutineScope.launch {
                 delay(5000)
-                onUiEvent(SurveyViewModel.UiEvent.DismissNotificationBanner)
+                onUiEvent(UiEvent.DismissNotificationBanner)
             }
         }
     }
@@ -221,7 +221,7 @@ fun SurveyQuestionScreen(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 onUiEvent(
-                    SurveyViewModel.UiEvent.Submit(
+                    UiEvent.Submit(
                         questionId = question.id,
                         answerContent = answerInput
                     )

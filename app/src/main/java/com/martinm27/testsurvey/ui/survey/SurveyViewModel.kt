@@ -2,8 +2,8 @@ package com.martinm27.testsurvey.ui.survey
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.martinm27.testsurvey.api.model.Answer
 import com.martinm27.testsurvey.data.SurveyRepository
+import com.martinm27.testsurvey.domain.Answer
 import com.martinm27.testsurvey.domain.Question
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,9 +11,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SurveyViewModel(
     private val surveyRepository: SurveyRepository,
+    private val defaultDispatcher: CoroutineDispatcher,
     private val ioDispatcher: CoroutineDispatcher
 ) : ViewModel() {
 
@@ -47,9 +49,12 @@ class SurveyViewModel(
         }
     }
 
-    private fun updateQuestionsUiState(updatedQuestions: List<Question>) {
+    private suspend fun updateQuestionsUiState(updatedQuestions: List<Question>) {
         _uiState.update { state ->
-            val questionsSubmittedCount = updatedQuestions.count(Question::isAnswered)
+
+            val questionsSubmittedCount = withContext(defaultDispatcher) {
+                updatedQuestions.count(Question::isAnswered)
+            }
 
             state.copy(
                 questions = updatedQuestions,
@@ -119,14 +124,5 @@ class SurveyViewModel(
                 }
             )
         }
-    }
-
-    sealed interface UiEvent {
-        data class Submit(val questionId: Int, val answerContent: String) : UiEvent
-        data object Next : UiEvent
-        data object Previous : UiEvent
-        data object DismissNotificationBanner : UiEvent
-        data class RetrySubmit(val answer: Answer) : UiEvent
-        data object Back : UiEvent
     }
 }

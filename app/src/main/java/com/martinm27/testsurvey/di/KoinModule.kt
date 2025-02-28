@@ -21,6 +21,7 @@ const val IO_SCHEDULER = "IO"
 const val MAIN_SCHEDULER = "MAIN_THREAD"
 
 const val IO_DISPATCHER = "IO_DISPATCHER"
+const val DEFAULT_DISPATCHER = "DEFAULT_DISPATCHER"
 
 val apiModule = module {
     single { provideTestSurveyApi(get()) }
@@ -39,6 +40,10 @@ val apiModule = module {
         Dispatchers.IO
     }
 
+    single(named(DEFAULT_DISPATCHER)) {
+        Dispatchers.Default
+    }
+
     single {
         SurveyRepository(get())
     }
@@ -48,6 +53,7 @@ val featuresModule = module {
     viewModel {
         SurveyViewModel(
             surveyRepository = get(),
+            defaultDispatcher = get(named(DEFAULT_DISPATCHER)),
             ioDispatcher = get(named(IO_DISPATCHER))
         )
     }
