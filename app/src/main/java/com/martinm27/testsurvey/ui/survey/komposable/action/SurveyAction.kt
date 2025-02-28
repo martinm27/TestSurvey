@@ -10,9 +10,7 @@ sealed interface SurveyAction {
     data object Previous : SurveyAction
     data class Submit(val questionId: Int, val answerContent: String) : SurveyAction
     data class RetrySubmit(val answer: Answer) : SurveyAction
-    data class SubmitAnswerResponse(val answer: Answer, val result: Result<Unit>) :
-        SurveyAction
-
+    data class SubmitAnswerResponse(val answer: Answer, val result: Result<Unit>) : SurveyAction
     data object DismissNotificationBanner : SurveyAction
     data object Back : SurveyAction
     data object DismissErrorMessage : SurveyAction

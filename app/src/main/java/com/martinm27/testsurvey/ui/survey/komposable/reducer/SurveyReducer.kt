@@ -16,7 +16,7 @@ val surveyReducer =
     Reducer<SurveyState, SurveyAction, SurveyEnvironment> { state, action, env ->
         when (action) {
             is SurveyAction.GetQuestions -> {
-                state + env.surveyClient.getQuestions()
+                state.copy() + env.surveyClient.getQuestions()
                     .subscribeOn(env.schedulerProvider.io())
                     .observeOn(env.schedulerProvider.mainThread())
                     .map<SurveyAction> { SurveyAction.QuestionsResponse(it) }
