@@ -6,6 +6,10 @@ This project is implemented in two different versions of MVI architecture:
 ### UI layer
 UI part is implemented using **Single Activity approach** with underlying **Jetpack Compose** screens.
 
+There are two screens:
+* Landing screen
+* Survey Screen
+
 ### Data model
 There are two layers of data models: API model and domain model. 
 
@@ -48,6 +52,9 @@ data class Answer(
 ### Dependency Injection (Service locator)
 **Koin** framework is used for **dependency injection** due to its ease of use.
 
+### Testing
+JUnit tests combined with [MockK](https://github.com/mockk/mockk) testing library for Kotlin.
+
 ## 1st Version (Kotlin Coroutines & Flow)
 
 ### Data layer
@@ -58,12 +65,47 @@ It communicates directly to the API via `TestSurveyApi` component as there is no
 It "hosts" the state of the questions list wrapped in Kotlin's `Result` class and published to the UI through the `Kotlin StateFlow`.
 
 ### UI layer
+`SurveyViewModel` orchestrates changes of the `UiState` via `StateFlow`. It is observing the `SurveyRepository.questionsFlow`, maps the new questions data and emits new UiState object to the Compose screens.
+
+#### UI state
+The following data class defines the UI state for the survey screen:
+
+```kotlin
+data class UiState(
+    val selectedQuestionPosition: Int = 0,
+    val questions: List<Question> = emptyList(),
+    val questionsSubmittedCount: Int = 0,
+    val isLoading: Boolean = true,
+    val submissionState: SubmissionState? = null,
+    val errorMessage: String? = null,
+    val navigateBack: Unit? = null
+)
+
+data class SubmissionState(
+    val isSuccess: Boolean,
+    val message: String,
+    val answerForRetry: Answer? = null
+)
+```
+#### UI event
+The following interface defines all the UI events that are generated from the Compose screen to the ViewModel.
+
+```kotlin
+sealed interface UiEvent {
+    data object Next : UiEvent
+    data object Previous : UiEvent
+    data class Submit(val questionId: Int, val answerContent: String) : UiEvent
+    data class RetrySubmit(val answer: Answer) : UiEvent
+    data object DismissNotificationBanner : UiEvent
+    data object Back : UiEvent
+}
+```
+
 
 ## 2nd Version (TKA)
 
 ### Data layer
 `SurveyClient` handles the communication with the API `TestSurveyApi` component. It propagates result as `Single<Result<*>` to which UI can subscribe.
-
 
 ### TKA part
 
@@ -91,7 +133,7 @@ data class SubmissionState(
 )
 ```
 
-#### Action:
+#### Action
 `SurveyAction` defines the list of possible actions that can happen throughout the survey feature.
 
 ```kotlin
@@ -109,8 +151,8 @@ sealed interface SurveyAction {
 }
 ```
 
-#### Environment:
-`SurveyEnvironment` communicates with `SurveyClient` and background/main schedulers.
+#### Environment
+`SurveyEnvironment` communicates with `SurveyClient` and exposes the background/main schedulers.
 
 ```kotlin
 class SurveyEnvironment(
@@ -119,8 +161,17 @@ class SurveyEnvironment(
 )
 ```
 
+#### Reducer
+`SurveyReducer` is a reducer that implements the logic for this domain. It describes how to change the current state to the next state, and describes what effects need to be executed. 
 
+#### Store
+Encapsulated by the `SurveyViewModel` on which the Compose screen has a reference to:
 
+```kotlin
+val viewStore = viewModel.store.view()
+
+val uiState = viewStore.states.subscribeAsState(viewStore.currentState).value
+```
 
 
 
