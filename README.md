@@ -1,214 +1,127 @@
-<!--
-*** Thanks for checking out the Best-README-Template. If you have a suggestion
-*** that would make this better, please fork the repo and create a pull request
-*** or simply open an issue with the tag "enhancement".
-*** Thanks again! Now go create something AMAZING! :D
--->
+## General Info
+This project is implemented in two different versions of MVI architecture:
+* Using Kotlin Coroutines and Flow together with Clean Architecture - branch [complete-task-v1](https://github.com/martinm27/TestSurvey/tree/complete-task-v1)
+* Using RxJava with TKA (The Komposable Architecture) - branch [complete-task-v2](https://github.com/martinm27/TestSurvey/tree/complete-task-v2)
+
+### UI layer
+UI part is implemented using **Single Activity approach** with underlying **Jetpack Compose** screens.
+
+### Data model
+There are two layers of data models: API model and domain model. 
+
+**API models** are serialized as **GSON** objects and they are used in the API calls. 
+
+**Domain models** are used in the domain layer and have respective mapping functions to/from the API models.
+
+`Question` data model has an ID and content received from the API model. Question is not answered by default. Additionally, when the answer is submitted successfully, question object is updated with the provided answer and re-emitted back to the UI.
+
+```kotlin
+data class Question(
+    val id: Int,
+    val question: String,
+    val isAnswered: Boolean = false,
+    val answer: Answer? = null
+)
+```
+
+`Answer` data model contains question's ID as identifier (it could have been an additional field, but to not overengineer it, it is done this way) and content as `String`.
+
+```kotlin
+data class Answer(
+    /** To make things easier, this ID is questionsId from [Question] object.*/
+    val id: Int,
+    val answer: String
+)
+```
+
+### API
+**Retrofit** interface called `TestSurveyApi` with two functions:
+
+```kotlin
+    @GET("/questions")
+    fun getQuestions(): Call<List<ApiQuestion>>
+
+    @POST("/question/submit")
+    fun postAnswer(@Body answer: ApiAnswer): Call<ResponseBody>
+```
+
+### Dependency Injection (Service locator)
+**Koin** framework is used for **dependency injection** due to its ease of use.
+
+## 1st Version (Kotlin Coroutines & Flow)
+
+### Data layer
+`SurveyRepository` is the central component of the **business logic**. In different circumstances, its functionality should be broken down into use cases, but for the sake of simplicity, all the logic is nested inside this component.
+
+It communicates directly to the API via `TestSurveyApi` component as there is no need to have an intermediate layer of data sources to save the data locally. 
+ 
+It "hosts" the state of the questions list wrapped in Kotlin's `Result` class and published to the UI through the `Kotlin StateFlow`.
+
+### UI layer
+
+## 2nd Version (TKA)
+
+### Data layer
+`SurveyClient` handles the communication with the API `TestSurveyApi` component. It propagates result as `Single<Result<*>` to which UI can subscribe.
 
 
+### TKA part
 
-<!-- PROJECT SHIELDS -->
-<!--
-*** I'm using markdown "reference style" links for readability.
-*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
-*** See the bottom of this document for the declaration of the reference variables
-*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
-*** https://www.markdownguide.org/basic-syntax/#reference-style-links
--->
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![MIT License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
+* State:
+`SurveyState` defines the UI state. It could be probably also broken down into smaller state components, but as I was still learning the architecture, I didn't have time to play with it more.
 
+```kotlin
+data class SurveyState(
+    val questions: List<Question> = emptyList(),
+    val questionsSubmitted: Int = 0,
+    val selectedQuestionPosition: Int = 0,
+    val submissionState: SubmissionState? = null,
+    val errorMessage: String? = null,
+    val navigateBack: Unit? = null
+)
+```
 
+`SubmissionState` is a part of `SurveyState` and encapsulates state of answer submission (success or failure) together with retry action.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/othneildrew/Best-README-Template">
-    <img src="images/logo.png" alt="Logo" width="80" height="80">
-  </a>
+```kotlin
+data class SubmissionState(
+    val isSuccess: Boolean,
+    val message: String,
+    val answerForRetry: Answer? = null
+)
+```
 
-  <h3 align="center">Best-README-Template</h3>
+* Action:
+`SurveyAction` defines the list of possible actions that can happen throughout the survey feature.
 
-  <p align="center">
-    An awesome README template to jumpstart your projects!
-    <br />
-    <a href="https://github.com/othneildrew/Best-README-Template"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-    <a href="https://github.com/othneildrew/Best-README-Template">View Demo</a>
-    ·
-    <a href="https://github.com/othneildrew/Best-README-Template/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/othneildrew/Best-README-Template/issues">Request Feature</a>
-  </p>
-</p>
+```kotlin
+sealed interface SurveyAction {
+    data object GetQuestions : SurveyAction
+    data class QuestionsResponse(val questions: Result<List<ApiQuestion>>) : SurveyAction
+    data object Next : SurveyAction
+    data object Previous : SurveyAction
+    data class Submit(val questionId: Int, val answerContent: String) : SurveyAction
+    data class RetrySubmit(val answer: Answer) : SurveyAction
+    data class SubmitAnswerResponse(val answer: Answer, val result: Result<Unit>) : SurveyAction
+    data object DismissNotificationBanner : SurveyAction
+    data object Back : SurveyAction
+    data object DismissErrorMessage : SurveyAction
+}
+```
 
+* Environment:
+`SurveyEnvironment` communicates with `SurveyClient` and background/main schedulers.
 
-
-<!-- TABLE OF CONTENTS -->
-<details open="open">
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgements">Acknowledgements</a></li>
-  </ol>
-</details>
-
-
-
-<!-- ABOUT THE PROJECT -->
-## About The Project
-
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
-
-There are many great README templates available on GitHub, however, I didn't find one that really suit my needs so I created this enhanced one. I want to create a README template so amazing that it'll be the last one you ever need -- I think this is it.
-
-Here's why:
-* Your time should be focused on creating something amazing. A project that solves a problem and helps others
-* You shouldn't be doing the same tasks over and over like creating a README from scratch
-* You should element DRY principles to the rest of your life :smile:
-
-Of course, no one template will serve all projects since your needs may be different. So I'll be adding more in the near future. You may also suggest changes by forking this repo and creating a pull request or opening an issue. Thanks to all the people have have contributed to expanding this template!
-
-A list of commonly used resources that I find helpful are listed in the acknowledgements.
-
-### Built With
-
-This section should list any major frameworks that you built your project using. Leave any add-ons/plugins for the acknowledgements section. Here are a few examples.
-* [Bootstrap](https://getbootstrap.com)
-* [JQuery](https://jquery.com)
-* [Laravel](https://laravel.com)
-
-
-
-<!-- GETTING STARTED -->
-## Getting Started
-
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
-
-### Prerequisites
-
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
-
-### Installation
-
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
-   ```sh
-   git clone https://github.com/your_username_/Project-Name.git
-   ```
-3. Install NPM packages
-   ```sh
-   npm install
-   ```
-4. Enter your API in `config.js`
-   ```JS
-   const API_KEY = 'ENTER YOUR API';
-   ```
-
-
-
-<!-- USAGE EXAMPLES -->
-## Usage
-
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
-
-_For more examples, please refer to the [Documentation](https://example.com)_
-
-
-
-<!-- ROADMAP -->
-## Roadmap
-
-See the [open issues](https://github.com/othneildrew/Best-README-Template/issues) for a list of proposed features (and known issues).
-
-
-
-<!-- CONTRIBUTING -->
-## Contributing
-
-Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any contributions you make are **greatly appreciated**.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-
-
-<!-- LICENSE -->
-## License
-
-Distributed under the MIT License. See `LICENSE` for more information.
-
-
-
-<!-- CONTACT -->
-## Contact
-
-Your Name - [@your_twitter](https://twitter.com/your_username) - email@example.com
-
-Project Link: [https://github.com/your_username/repo_name](https://github.com/your_username/repo_name)
-
-
-
-<!-- ACKNOWLEDGEMENTS -->
-## Acknowledgements
-* [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
-* [Img Shields](https://shields.io)
-* [Choose an Open Source License](https://choosealicense.com)
-* [GitHub Pages](https://pages.github.com)
-* [Animate.css](https://daneden.github.io/animate.css)
-* [Loaders.css](https://connoratherton.com/loaders)
-* [Slick Carousel](https://kenwheeler.github.io/slick)
-* [Smooth Scroll](https://github.com/cferdinandi/smooth-scroll)
-* [Sticky Kit](http://leafo.net/sticky-kit)
-* [JVectorMap](http://jvectormap.com)
-* [Font Awesome](https://fontawesome.com)
+```kotlin
+class SurveyEnvironment(
+    val surveyClient: SurveyClient,
+    val schedulerProvider: SchedulerProvider
+)
+```
 
 
 
 
 
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/othneildrew/Best-README-Template.svg?style=for-the-badge
-[contributors-url]: https://github.com/othneildrew/Best-README-Template/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=for-the-badge
-[forks-url]: https://github.com/othneildrew/Best-README-Template/network/members
-[stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=for-the-badge
-[stars-url]: https://github.com/othneildrew/Best-README-Template/stargazers
-[issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=for-the-badge
-[issues-url]: https://github.com/othneildrew/Best-README-Template/issues
-[license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=for-the-badge
-[license-url]: https://github.com/othneildrew/Best-README-Template/blob/master/LICENSE.txt
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/othneildrew
-[product-screenshot]: images/screenshot.png
+
+
